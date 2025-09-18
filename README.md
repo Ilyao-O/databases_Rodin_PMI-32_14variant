@@ -1,5 +1,5 @@
 
-# Che-to svoe
+# Database
 
 Database Labs in YarSU, Semenov Evgeniy, PMI-32, Lab number 13.
 
