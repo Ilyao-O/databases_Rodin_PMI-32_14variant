@@ -21,4 +21,4 @@
 ### ER-model:
 ![ER-model](/Pics/ER_model.png)
 ### Relational model:
-![REL-model](/Pics/Реляционная модель.png)
+![REL-model](/Pics/REL_model.png)
