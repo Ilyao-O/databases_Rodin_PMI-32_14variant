@@ -82,7 +82,7 @@ Create table Rent(
 ![Client](/Pics/Client.png)
 ### Premise table
 ![Premise](/Pics/Premise.png)
-### Saletable
+### Sale table
 ![Sale](/Pics/Sale.png)
 ### Rent table
 ![Rent](/Pics/Rent.png)
