@@ -610,6 +610,7 @@ FROM RentNode r
 JOIN PremiseNode prem ON prem.ID = r.PremiseID;
 ```
 3.  Запросы из задания 3.2
+
 a) Клиент хочет арендовать помещение, находящееся не на 1-м и не на последнем этажах,площадью не меньше 100 м2 – выдать стоимость аренды для таких помещений
 ```
 SELECT 
@@ -632,6 +633,7 @@ WHERE MATCH(prop-(o)->p)
 ORDER BY p.Rental_price ASC;
 ```
 ![task_a](/Lab6/task_a.png)
+
 b) Найти клиентов, арендующих 2 и более помещений
 ```
 SELECT 
@@ -645,6 +647,7 @@ HAVING COUNT(DISTINCT r.PremiseID) >= 2
 ORDER BY RentedPremisesCount DESC, ClientName;
 ```
 ![task_b](/Lab6/task_b.png)
+
 c) Для каждого владельца посчитать кол-во сдаваемых им помещений, суммарную стоимость выручки в день от их сдачи
 ```
 SELECT 
@@ -658,6 +661,7 @@ GROUP BY p.ID, p.FIO
 ORDER BY [Total Revenue Per Day] DESC;
 ```
 ![task_c](/Lab6/task_c.png)
+
 d) Найти арендаторов с наибольшим сроком аренды
 ```
 SELECT TOP 1 WITH TIES
@@ -669,6 +673,7 @@ GROUP BY c.ID, c.FIO
 ORDER BY SUM(DATEDIFF(DAY, r.StartDate, r.EndDate)) DESC;
 ```
 ![task_d](/Lab6/task_d.png)
+
 e) Выдать ФИО владельцев и арендаторов, заключивших между собой 2 и больше сделок
 ```
 SELECT 
@@ -681,6 +686,7 @@ GROUP BY prop.ID, prop.FIO, c.ID, c.FIO
 HAVING COUNT(*) >= 2;
 ```
 ![task_e](/Lab6/task_e.png)
+
 f) Найти владельцев, имеющих наибольшую выручку от аренды и продажи помещений с начала года
 ```
 WITH OwnerRevenue AS (
