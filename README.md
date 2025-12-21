@@ -472,7 +472,7 @@ DELETE FROM Proprietor WHERE ID = 8;
 ## Lab 6
 
 1.  Схема узлов и ребер
-![Graph](/Lab4/GraphModel.png)
+![GraphModel](/Lab6/GraphModel.png)
 2.  Скрипт для создания и заполнения графовых таблиц
 ```
 CREATE TABLE ClientNode (
@@ -631,7 +631,7 @@ WHERE MATCH(prop-(o)->p)
   AND p.Status = 1
 ORDER BY p.Rental_price ASC;
 ```
-![task_a](/Lab4/task_a.png)
+![task_a](/Lab6/task_a.png)
 b) Найти клиентов, арендующих 2 и более помещений
 ```
 SELECT 
@@ -644,7 +644,7 @@ GROUP BY c.ID, c.FIO
 HAVING COUNT(DISTINCT r.PremiseID) >= 2
 ORDER BY RentedPremisesCount DESC, ClientName;
 ```
-![task_b](/Lab4/task_b.png)
+![task_b](/Lab6/task_b.png)
 c) Для каждого владельца посчитать кол-во сдаваемых им помещений, суммарную стоимость выручки в день от их сдачи
 ```
 SELECT 
@@ -657,7 +657,7 @@ WHERE MATCH(p-(o)->pr)
 GROUP BY p.ID, p.FIO
 ORDER BY [Total Revenue Per Day] DESC;
 ```
-![task_c](/Lab4/task_c.png)
+![task_c](/Lab6/task_c.png)
 d) Найти арендаторов с наибольшим сроком аренды
 ```
 SELECT TOP 1 WITH TIES
@@ -668,7 +668,7 @@ WHERE MATCH(c<-(rt)-r)
 GROUP BY c.ID, c.FIO
 ORDER BY SUM(DATEDIFF(DAY, r.StartDate, r.EndDate)) DESC;
 ```
-![task_d](/Lab4/task_d.png)
+![task_d](/Lab6/task_d.png)
 e) Выдать ФИО владельцев и арендаторов, заключивших между собой 2 и больше сделок
 ```
 SELECT 
@@ -680,7 +680,7 @@ WHERE MATCH(prop<-(rb)-r-(rt)->c)
 GROUP BY prop.ID, prop.FIO, c.ID, c.FIO
 HAVING COUNT(*) >= 2;
 ```
-![task_e](/Lab4/task_e.png)
+![task_e](/Lab6/task_e.png)
 f) Найти владельцев, имеющих наибольшую выручку от аренды и продажи помещений с начала года
 ```
 WITH OwnerRevenue AS (
@@ -713,4 +713,4 @@ FROM OwnerRevenue
 GROUP BY ID, FIO
 ORDER BY TotalRevenue DESC;
 ```
-![task_f](/Lab4/task_f.png)
+![task_f](/Lab6/task_f.png)
