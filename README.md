@@ -468,3 +468,249 @@ DELETE FROM Proprietor WHERE ID = 8;
 
 ## Lab 5
 [Script_Lab5](/Lab5/SqlLab5.sql)
+
+## Lab 6
+
+1.  Схема узлов и ребер
+![Graph](/Lab4/GraphModel.png)
+2.  Скрипт для создания и заполнения графовых таблиц
+```
+CREATE TABLE ClientNode (
+    ID INT PRIMARY KEY,
+    Passport NVARCHAR(15) UNIQUE NOT NULL,
+    Phone NVARCHAR(20) NOT NULL,
+    FIO NVARCHAR(100) NOT NULL
+) AS NODE;
+
+CREATE TABLE ProprietorNode (
+    ID INT PRIMARY KEY,
+    Passport NVARCHAR(15) UNIQUE NOT NULL,
+    Phone NVARCHAR(20) NOT NULL,
+    FIO NVARCHAR(100) NOT NULL
+) AS NODE;
+
+CREATE TABLE PremiseNode (
+    ID INT PRIMARY KEY,
+    Area FLOAT NOT NULL CHECK(Area>0),
+    Number_of_Premises INT NOT NULL CHECK(Number_of_Premises>0),
+    Sale_Price INT CHECK(Sale_Price>=0),
+    Rental_price INT CHECK(Rental_price >=0),
+    Address NVARCHAR(200) NOT NULL,
+    Floor INT NOT NULL,
+    LastRenovation DATE NOT NULL,
+    Material NVARCHAR(200) NOT NULL,
+    Status BIT NOT NULL,
+    TotalFloors INT NULL
+) AS NODE;
+
+CREATE TABLE SaleNode (
+    ID INT PRIMARY KEY,
+    TransactionDate DATE NOT NULL,
+    FinalPrice INT NOT NULL,
+    PremiseID INT NOT NULL,
+    ProprietorID INT NOT NULL,
+    ClientID INT NOT NULL
+) AS NODE;
+
+CREATE TABLE RentNode (
+    ID INT PRIMARY KEY,
+    StartDate DATE NOT NULL,
+    EndDate DATE NOT NULL,
+    FinalPrice INT NOT NULL,
+    PremiseID INT NOT NULL,
+    ProprietorID INT NOT NULL,
+    ClientID INT NOT NULL
+) AS NODE;
+
+
+CREATE TABLE OWNS AS EDGE;
+
+CREATE TABLE SOLD_BY AS EDGE; 
+CREATE TABLE SOLD_TO AS EDGE; 
+CREATE TABLE FOR_PREMISE_SALE AS EDGE; 
+
+CREATE TABLE RENTED_BY AS EDGE;
+CREATE TABLE RENTED_TO AS EDGE;
+CREATE TABLE FOR_PREMISE_RENT AS EDGE;
+
+
+INSERT INTO ClientNode (ID, Passport, Phone, FIO)
+SELECT ID, Passport, Phone, FIO FROM Client;
+
+INSERT INTO ProprietorNode (ID, Passport, Phone, FIO)
+SELECT ID, Passport, Phone, FIO FROM Proprietor;
+
+INSERT INTO PremiseNode (
+    ID, Area, Number_of_Premises, Sale_Price, Rental_price, 
+    Address, Floor, LastRenovation, Material, Status, TotalFloors
+)
+SELECT 
+    ID, Area, [Number of Premises], [Sale Price], [Rental price],
+    Address, [Floor], LastRenovation, Material, [Status], TotalFloors
+FROM Premise;
+
+INSERT INTO SaleNode (ID, TransactionDate, FinalPrice, PremiseID, ProprietorID, ClientID)
+SELECT 
+    ID, [Date of sale], [Final price], Premise_Id, Proprietor_Id, Client_Id
+FROM Sale;
+
+INSERT INTO RentNode (ID, StartDate, EndDate, FinalPrice, PremiseID, ProprietorID, ClientID)
+SELECT 
+    ID, [Rental start date], [Rental end date], [Final price], Premise_Id, Proprietor_Id, Client_Id
+FROM Rent;
+
+INSERT INTO OWNS ($from_id, $to_id)
+SELECT 
+    prop.$node_id,
+    prem.$node_id
+FROM ProprietorNode prop
+JOIN Premise p ON prop.ID = p.Proprietor_id
+JOIN PremiseNode prem ON prem.ID = p.ID;
+
+INSERT INTO SOLD_BY ($from_id, $to_id)
+SELECT 
+    s.$node_id,
+    prop.$node_id
+FROM SaleNode s
+JOIN ProprietorNode prop ON prop.ID = s.ProprietorID;
+
+INSERT INTO SOLD_TO ($from_id, $to_id)
+SELECT 
+    s.$node_id,
+    client.$node_id
+FROM SaleNode s
+JOIN ClientNode client ON client.ID = s.ClientID;
+
+INSERT INTO FOR_PREMISE_SALE ($from_id, $to_id)
+SELECT 
+    s.$node_id,
+    prem.$node_id
+FROM SaleNode s
+JOIN PremiseNode prem ON prem.ID = s.PremiseID;
+
+INSERT INTO RENTED_BY ($from_id, $to_id)
+SELECT 
+    r.$node_id,
+    prop.$node_id
+FROM RentNode r
+JOIN ProprietorNode prop ON prop.ID = r.ProprietorID;
+
+INSERT INTO RENTED_TO ($from_id, $to_id)
+SELECT 
+    r.$node_id,
+    client.$node_id
+FROM RentNode r
+JOIN ClientNode client ON client.ID = r.ClientID;
+
+INSERT INTO FOR_PREMISE_RENT ($from_id, $to_id)
+SELECT 
+    r.$node_id,
+    prem.$node_id
+FROM RentNode r
+JOIN PremiseNode prem ON prem.ID = r.PremiseID;
+```
+3.  Запросы из задания 3.2
+a) Клиент хочет арендовать помещение, находящееся не на 1-м и не на последнем этажах,площадью не меньше 100 м2 – выдать стоимость аренды для таких помещений
+```
+SELECT 
+    prop.ID as Proprietor_id,
+    p.Address,
+    p.Area,
+    p.Floor,
+    p.TotalFloors,
+    p.Rental_price as RentPrice,
+    p.Material,
+    p.LastRenovation,
+    prop.FIO as OwnerName
+FROM PremiseNode p, OWNS o, ProprietorNode prop
+WHERE MATCH(prop-(o)->p)
+  AND p.Area >= 100
+  AND p.Floor > 1 
+  AND p.Floor < ISNULL(p.TotalFloors, 20)
+  AND p.Rental_price IS NOT NULL
+  AND p.Status = 1
+ORDER BY p.Rental_price ASC;
+```
+![task_a](/Lab4/task_a.png)
+b) Найти клиентов, арендующих 2 и более помещений
+```
+SELECT 
+    c.FIO as ClientName,
+    COUNT(DISTINCT r.PremiseID) as RentedPremisesCount
+FROM ClientNode c, RENTED_TO rt, RentNode r
+WHERE MATCH(c<-(rt)-r)
+  AND GETDATE() BETWEEN r.StartDate AND r.EndDate
+GROUP BY c.ID, c.FIO
+HAVING COUNT(DISTINCT r.PremiseID) >= 2
+ORDER BY RentedPremisesCount DESC, ClientName;
+```
+![task_b](/Lab4/task_b.png)
+c) Для каждого владельца посчитать кол-во сдаваемых им помещений, суммарную стоимость выручки в день от их сдачи
+```
+SELECT 
+    p.FIO as Владелец,
+    COUNT(DISTINCT pr.ID) as CountPremises,
+    SUM(pr.Rental_price / 30.0) as [Total Revenue Per Day]
+FROM ProprietorNode p, OWNS o, PremiseNode pr
+WHERE MATCH(p-(o)->pr)
+  AND pr.Rental_price > 0
+GROUP BY p.ID, p.FIO
+ORDER BY [Total Revenue Per Day] DESC;
+```
+![task_c](/Lab4/task_c.png)
+d) Найти арендаторов с наибольшим сроком аренды
+```
+SELECT TOP 1 WITH TIES
+    c.FIO as Tenant,
+    SUM(DATEDIFF(DAY, r.StartDate, r.EndDate)) as TotalRentalDays
+FROM ClientNode c, RENTED_TO rt, RentNode r
+WHERE MATCH(c<-(rt)-r)
+GROUP BY c.ID, c.FIO
+ORDER BY SUM(DATEDIFF(DAY, r.StartDate, r.EndDate)) DESC;
+```
+![task_d](/Lab4/task_d.png)
+e) Выдать ФИО владельцев и арендаторов, заключивших между собой 2 и больше сделок
+```
+SELECT 
+    prop.FIO as ProprietorName,
+    c.FIO as TenantName,
+    COUNT(*) as RentDealCount
+FROM ProprietorNode prop, ClientNode c, RENTED_BY rb, RENTED_TO rt, RentNode r
+WHERE MATCH(prop<-(rb)-r-(rt)->c)
+GROUP BY prop.ID, prop.FIO, c.ID, c.FIO
+HAVING COUNT(*) >= 2;
+```
+![task_e](/Lab4/task_e.png)
+f) Найти владельцев, имеющих наибольшую выручку от аренды и продажи помещений с начала года
+```
+WITH OwnerRevenue AS (
+    SELECT 
+        p.ID,
+        p.FIO,
+        SUM(s.FinalPrice) as SalesRevenue,
+        0 as RentRevenue
+    FROM ProprietorNode p, SOLD_BY sb, SaleNode s
+    WHERE MATCH(p<-(sb)-s)
+      AND s.TransactionDate >= '2025-01-01'
+    GROUP BY p.ID, p.FIO
+    
+    UNION ALL
+    
+    SELECT 
+        p.ID,
+        p.FIO,
+        0 as SalesRevenue,
+        SUM(r.FinalPrice) as RentRevenue
+    FROM ProprietorNode p, RENTED_BY rb, RentNode r
+    WHERE MATCH(p<-(rb)-r)
+      AND r.StartDate >= '2025-01-01'
+    GROUP BY p.ID, p.FIO
+)
+SELECT TOP 1 WITH TIES
+    FIO as ProprietorName,
+    SUM(SalesRevenue) + SUM(RentRevenue) as TotalRevenue
+FROM OwnerRevenue
+GROUP BY ID, FIO
+ORDER BY TotalRevenue DESC;
+```
+![task_f](/Lab4/task_f.png)
